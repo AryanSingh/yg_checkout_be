@@ -1,0 +1,10 @@
+{
+    "API_KEY": "C22E70953AC4A7CBEE79C3D850F0EE",
+    "MERCHANT_ID": "SG3976",
+    "PAYMENT_PAGE_CLIENT_ID": "hdfcmaster",
+    "BASE_URL": "https://smartgateway.hdfcuat.bank.in",
+    "ENABLE_LOGGING": true,
+    "LOGGING_PATH": "./logs/PaymentHandler.log",
+    "RESPONSE_KEY": "AFA4F561B70496C8F641621A460631"
+}
+

@@ -17,12 +17,12 @@ app.use(express.static("public"));
 app.get("/", (_, res) =>
   res.sendFile(path.join(__dirname, "public", "initiatePaymentDataForm.html"))
 );
-// app.use(cors({
-//   origin: 'http://localhost:5173',
-//   credentials: true
-// }));
+app.use(cors({
+  origin: 'https://checkout.purnamyogashala.com',
+  credentials: true
+}));
 app.post("/initiatePayment", async (req, res) => {
-  debugger;
+
   const orderId = `order_${Date.now()}`;
   const amount = 1 + crypto.randomInt(100);
   const returnUrl = `${req.protocol}://${req.hostname}:${port}/handlePaymentResponse`;

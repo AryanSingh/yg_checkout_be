@@ -1,5 +1,5 @@
 {
-  "name": "nodejs-backendkit-apikey",
+  "name": "yoga_checkout_be",
   "version": "1.0.0",
   "description": "Juspays expresscheckout backend kit using api-key",
   "main": "index.js",

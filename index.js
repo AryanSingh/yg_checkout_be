@@ -34,7 +34,7 @@ app.post("/initiatePayment", async (req, res) => {
   console.log("here");
   const orderId = `order_${Date.now()}`;
   const amount = 1 + crypto.randomInt(100);
-  const returnUrl = `${req.protocol}://${req.hostname}:${port}/handlePaymentResponse`;
+  const returnUrl = `https://${req.hostname}/handlePaymentResponse`;
   const paymentHandler = PaymentHandler.getInstance();
   try {
     const orderSessionResp = await paymentHandler.orderSession({

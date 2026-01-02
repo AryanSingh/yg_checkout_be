@@ -10,7 +10,7 @@ const {
 const crypto = require("crypto");
 const path = require("path");
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || "";
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -32,7 +32,7 @@ app.use(cors({
 app.post("/initiatePayment", async (req, res) => {
   const orderId = `order_${Date.now()}`;
   const amount = req.body.amount;
-  const returnUrl = `${req.protocol}://${req.hostname}:${port}/handlePaymentResponse`;
+  const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
   const paymentHandler = PaymentHandler.getInstance();
   const payload = {
     order_id: orderId,

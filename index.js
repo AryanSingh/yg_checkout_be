@@ -30,26 +30,23 @@ app.use(cors({
   credentials: true
 }));
 app.post("/initiatePayment", async (req, res) => {
-  debugger;
-  console.log("here");
   const orderId = `order_${Date.now()}`;
-  const amount = 1 + crypto.randomInt(100);
-  const returnUrl = `https://${req.hostname}/handlePaymentResponse`;
+  const amount = req.body.amount;
+  const returnUrl = `${req.protocol}://${req.hostname}:${port}/handlePaymentResponse`;
   const paymentHandler = PaymentHandler.getInstance();
+  const payload = {
+    order_id: orderId,
+    amount,
+    currency: "INR",
+    return_url: returnUrl,
+    email: req.body.email,
+    phone: req.body.phone,
+    address: req.body.address,
+    name: req.body.name,
+    customer_id: process.env.MERCHANT_ID,
+  }
   try {
-    const orderSessionResp = await paymentHandler.orderSession({
-      order_id: orderId,
-      amount,
-      currency: "INR",
-      return_url: returnUrl,
-      // [MERCHANT_TODO]:- please handle customer_id, it's an optional field but we suggest to use it.
-      customer_id: "sample-customer-id",
-      // please note you don't have to give payment_page_client_id here, it's mandatory but
-      // PaymentHandler will read it from config.json file
-      // payment_page_client_id: paymentHandler.getPaymentPageClientId()
-    });
-    debugger;
-    // return res.redirect(orderSessionResp.payment_links.web);
+    const orderSessionResp = await paymentHandler.orderSession(payload);
     return res.json({
       paymentUrl: orderSessionResp.payment_links.web
     });
@@ -82,7 +79,6 @@ app.post("/handlePaymentResponse", async (req, res) => {
 
     const orderStatus = orderStatusResp.status;
     let message = "";
-    console.log("orderStatus:", orderStatus);
     switch (orderStatus) {
       case "CHARGED":
         message = "order payment done successfully";
@@ -113,7 +109,6 @@ app.post("/handlePaymentResponse", async (req, res) => {
     // res.set("Content-Type", "text/html");
     // return res.send(html);
   } catch (error) {
-    console.error(error);
     // [MERCHANT_TODO]:- please handle errors
     if (error instanceof APIException) {
       return res.send("PaymentHandler threw some error");

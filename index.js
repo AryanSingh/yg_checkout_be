@@ -14,15 +14,24 @@ const port = process.env.PORT || 5000;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+
 app.get("/", (_, res) =>
   res.sendFile(path.join(__dirname, "public", "initiatePaymentDataForm.html"))
 );
+// app.use(cors({
+//   origin: 'http://localhost:5174',
+//   credentials: true
+// }));
 app.use(cors({
-  origin: 'https://checkout.purnamyogashala.com',
+  origin: '*',
   credentials: true
 }));
 app.post("/initiatePayment", async (req, res) => {
-
+  debugger;
+  console.log("here");
   const orderId = `order_${Date.now()}`;
   const amount = 1 + crypto.randomInt(100);
   const returnUrl = `${req.protocol}://${req.hostname}:${port}/handlePaymentResponse`;
@@ -39,7 +48,11 @@ app.post("/initiatePayment", async (req, res) => {
       // PaymentHandler will read it from config.json file
       // payment_page_client_id: paymentHandler.getPaymentPageClientId()
     });
-    return res.redirect(orderSessionResp.payment_links.web);
+    debugger;
+    // return res.redirect(orderSessionResp.payment_links.web);
+    return res.json({
+      paymentUrl: orderSessionResp.payment_links.web
+    });
   } catch (error) {
     // [MERCHANT_TODO]:- please handle errors
     if (error instanceof APIException) {
@@ -69,6 +82,7 @@ app.post("/handlePaymentResponse", async (req, res) => {
 
     const orderStatus = orderStatusResp.status;
     let message = "";
+    console.log("orderStatus:", orderStatus);
     switch (orderStatus) {
       case "CHARGED":
         message = "order payment done successfully";
@@ -88,14 +102,16 @@ app.post("/handlePaymentResponse", async (req, res) => {
         break;
     }
 
-    const html = makeOrderStatusResponse(
-      "Merchant Payment Response Page",
-      message,
-      req,
-      orderStatusResp
-    );
-    res.set("Content-Type", "text/html");
-    return res.send(html);
+    return res.redirect(process.env.REDIRECT_URL);
+
+    // const html = makeOrderStatusResponse(
+    //   "Merchant Payment Response Page",
+    //   message,
+    //   req,
+    //   orderStatusResp
+    // );
+    // res.set("Content-Type", "text/html");
+    // return res.send(html);
   } catch (error) {
     console.error(error);
     // [MERCHANT_TODO]:- please handle errors

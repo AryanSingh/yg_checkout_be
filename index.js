@@ -98,7 +98,9 @@ app.post("/handlePaymentResponse", async (req, res) => {
         break;
     }
 
-    return res.redirect(process.env.REDIRECT_URL);
+    const redirectUrl = `${process.env.REDIRECT_URL}?order_id=${encodeURIComponent(orderId)}`;
+    return res.redirect(redirectUrl);
+    // return res.redirect(process.env.REDIRECT_URL);
 
     // const html = makeOrderStatusResponse(
     //   "Merchant Payment Response Page",
@@ -119,6 +121,7 @@ app.post("/handlePaymentResponse", async (req, res) => {
 });
 
 app.get('/', (req, res) => res.send('Checkout API running'))
+
 
 
 app.post("/initiateRefund", async (req, res) => {
@@ -146,6 +149,25 @@ app.post("/initiateRefund", async (req, res) => {
     }
     // [MERCHANT_TODO]:- please handle errors
     return res.send("Something went wrong");
+  }
+});
+
+app.get('/orders/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+  const paymentHandler = PaymentHandler.getInstance();
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'Order ID is required' });
+  }
+
+  try {
+    const orderStatusResp = await paymentHandler.orderStatus(orderId);
+    return res.json(orderStatusResp);
+  } catch (error) {
+    if (error instanceof APIException) {
+      return res.status(500).json({ error: 'PaymentHandler threw some error' });
+    }
+    return res.status(500).json({ error: 'Something went wrong' });
   }
 });
 

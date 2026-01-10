@@ -12,7 +12,7 @@ const crypto = require("crypto");
 const path = require("path");
 const app = express();
 const port = process.env.PORT || "";
-const PAYMENT_SHEET_URL = "https://script.google.com/macros/s/AKfycbz-rTfpXy2Yz32kcnU-ZaEPbOkLVG9jtDRKQxjmjviHl-Du8tF-HSmLVkCQRQxLHqr_nQ/exec";
+const PAYMENT_SHEET_URL = "https://script.google.com/macros/s/AKfycbycQzpF-2dAgwNX8oXC3Jyl0stwSb5BQ7NfTxuauhisMtdXEcPWcb1jHmZOqCGrR4Eprg/exec";
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(express.json());
@@ -27,7 +27,7 @@ app.get("/", (_, res) =>
 //   credentials: true
 // }));
 app.use(cors({
-  origin: '*',
+  origin: "https://checkout.purnamyogashala.com",
   credentials: true
 }));
 app.post("/initiatePayment", async (req, res) => {
@@ -84,6 +84,13 @@ app.post("/handlePaymentResponse", async (req, res) => {
   }
 
   try {
+
+    if (
+      validateHMAC_SHA256(req.body, paymentHandler.getResponseKey()) === false
+    ) {
+      // [MERCHANT_TODO]:- validation failed, it's critical error
+      return res.send("Signature verification failed");
+    }
     const orderStatusResp = await paymentHandler.orderStatus(orderId);
     const status = orderStatusResp.status;
     await axios.post(PAYMENT_SHEET_URL, null, {
@@ -96,12 +103,6 @@ app.post("/handlePaymentResponse", async (req, res) => {
         raw_response: JSON.stringify(orderStatusResp)
       }
     });
-    if (
-      validateHMAC_SHA256(req.body, paymentHandler.getResponseKey()) === false
-    ) {
-      // [MERCHANT_TODO]:- validation failed, it's critical error
-      return res.send("Signature verification failed");
-    }
 
     const orderStatus = orderStatusResp.status;
     let message = "";

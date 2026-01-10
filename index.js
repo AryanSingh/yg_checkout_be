@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+import axios from "axios";
 require('dotenv').config();
 const config = require('./config');
 const {

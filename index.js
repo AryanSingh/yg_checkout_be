@@ -171,7 +171,7 @@ app.get('/orders/:orderId', async (req, res) => {
   }
 });
 
-const APPS_SCRIPT_URL = process.env.APP_SCRIPT_URL; // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw46Ki0nKFuDwRUyXhWqfEPVIqQRdYBFL5e_8RPYpRPNZavzrY5SnFhHeLvldF3m7TfGw/exec"; // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
 
 app.post("/submit-form", async (req, res) => {
   try {
@@ -181,11 +181,13 @@ app.post("/submit-form", async (req, res) => {
     });
 
     const PaymentType = Object.freeze({
-      "100_WITH_ACCOM": "100_with_accom",
-      "100_WITHOUT_ACCOM": "100_without_accom",
-      "200_WITH_ACCOM": "200_with_accom",
-      "200_WITHOUT_ACCOM": "200_without_accom"
+      "100_WITH_ACCOM": 900,
+      "100_WITHOUT_ACCOM": 600,
+      "200_WITH_ACCOM": 1800,
+      "200_WITHOUT_ACCOM": 900
     });
+
+
 
     // 2️⃣ Build redirect URL
     const redirectUrl =
@@ -193,7 +195,7 @@ app.post("/submit-form", async (req, res) => {
         "?name=" + encodeURIComponent(req.body.et_pb_contact_name_0 || "") +
         "&email=" + encodeURIComponent(req.body.et_pb_contact_email_0 || "") +
         "&phone=" + encodeURIComponent(req.body.et_pb_contact_mobile_0 || "") +
-        "&amount=499";
+        `&amount=${PaymentType["100_WITH_ACCOM"]}` ;
 
     // 3️⃣ Redirect browser
     return res.redirect(302, redirectUrl);

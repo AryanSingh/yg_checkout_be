@@ -171,6 +171,40 @@ app.get('/orders/:orderId', async (req, res) => {
   }
 });
 
+const APPS_SCRIPT_URL = process.env.APP_SCRIPT_URL; // e.g., "https://script.google.com/macros/s/AKfycbx.../exec"
+
+app.post("/submit-form", async (req, res) => {
+  try {
+    // 1️⃣ Forward data to Google Apps Script
+    await axios.post(APPS_SCRIPT_URL, null, {
+      params: req.body, // important: Apps Script reads e.parameter
+    });
+
+    const PaymentType = Object.freeze({
+      "100_WITH_ACCOM": "100_with_accom",
+      "100_WITHOUT_ACCOM": "100_without_accom",
+      "200_WITH_ACCOM": "200_with_accom",
+      "200_WITHOUT_ACCOM": "200_without_accom"
+    });
+
+    // 2️⃣ Build redirect URL
+    const redirectUrl =
+        "https://checkout.purnamyogashala.com" +
+        "?name=" + encodeURIComponent(req.body.et_pb_contact_name_0 || "") +
+        "&email=" + encodeURIComponent(req.body.et_pb_contact_email_0 || "") +
+        "&phone=" + encodeURIComponent(req.body.et_pb_contact_mobile_0 || "") +
+        "&amount=499";
+
+    // 3️⃣ Redirect browser
+    return res.redirect(302, redirectUrl);
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("Something went wrong");
+  }
+});
+
+
 // [MERCHAT_TODO]:- Please modify this as per your requirements
 const makeOrderStatusResponse = (title, message, req, response) => {
   let inputParamsTableRows = "";

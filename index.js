@@ -199,18 +199,10 @@ app.post("/submit-form", async (req, res) => {
         `&amount=${PaymentType["100_WITH_ACCOM"]}` ;
 
     // 3️⃣ Redirect browser
-    return res.send(`
-  <html>
-    <head>
-      <script>
-        window.location.href = "${redirectUrl}";
-      </script>
-    </head>
-    <body>
-      Redirecting...
-    </body>
-  </html>
-`);
+    return res.json({
+      redirect: redirectUrl
+    });
+
 
 
   } catch (error) {

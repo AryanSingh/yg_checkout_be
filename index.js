@@ -200,8 +200,10 @@ app.post("/submit-form", async (req, res) => {
 
     // 3️⃣ Redirect browser
     return res.json({
+      status: "success",
       redirect: redirectUrl
     });
+
 
 
 

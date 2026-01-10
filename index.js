@@ -12,8 +12,7 @@ const crypto = require("crypto");
 const path = require("path");
 const app = express();
 const port = process.env.PORT || "";
-const PAYMENT_SHEET_URL = "https://script.google.com/macros/s/AKfycby_v7AfGEPe9klY7qAx3O_6JoRJrlMac9qh_fV6bQd4SSZMCUYbrUr0rDq6oPr5paeifA/exec";
-
+const PAYMENT_SHEET_URL = "https://script.google.com/macros/s/AKfycbx-R_1CDS42QXiMHVq3GiZdPmFNl5N-vh4QFkJxqib1MNriEZtrhy3JU4r9thzvPiTz/exec";
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(express.json());

@@ -12,6 +12,7 @@ const crypto = require("crypto");
 const path = require("path");
 const app = express();
 const port = process.env.PORT || "";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycby_v7AfGEPe9klY7qAx3O_6JoRJrlMac9qh_fV6bQd4SSZMCUYbrUr0rDq6oPr5paeifA/exec";
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -35,6 +36,19 @@ app.post("/initiatePayment", async (req, res) => {
   const amount = req.body.amount;
   const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
   const paymentHandler = PaymentHandler.getInstance();
+  await axios.post(SHEET_URL, null, {
+    params: {
+      order_id: orderId,
+      status: "CREATED",
+      amount,
+      currency: "INR",
+      email: req.body.email,
+      phone: req.body.phone,
+      name: req.body.name,
+      raw_response: "Order created"
+    }
+  });
+
   const payload = {
     order_id: orderId,
     amount,
@@ -71,6 +85,16 @@ app.post("/handlePaymentResponse", async (req, res) => {
 
   try {
     const orderStatusResp = await paymentHandler.orderStatus(orderId);
+    const status = orderStatusResp.status;
+    await axios.post(SHEET_URL, null, {
+      params: {
+        order_id: orderId,
+        status,
+        amount: orderStatusResp.amount || "",
+        currency: "INR",
+        raw_response: JSON.stringify(orderStatusResp)
+      }
+    });
     if (
       validateHMAC_SHA256(req.body, paymentHandler.getResponseKey()) === false
     ) {
@@ -140,6 +164,15 @@ app.post("/initiateRefund", async (req, res) => {
       req,
       refundResp
     );
+    await axios.post(SHEET_URL, null, {
+      params: {
+        order_id: req.body.order_id,
+        status: "REFUND_" + refundResp.status,
+        amount: req.body.amount,
+        raw_response: JSON.stringify(refundResp)
+      }
+    });
+
     res.set("Content-Type", "text/html");
     return res.send(html);
   } catch (error) {

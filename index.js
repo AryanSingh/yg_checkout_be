@@ -3,6 +3,7 @@ const cors = require("cors");
 const axios = require("axios");
 require('dotenv').config();
 const config = require('./config');
+const products = require('./products');
 const {
   PaymentHandler,
   APIException,
@@ -31,10 +32,24 @@ app.use(cors({
   credentials: true
 }));
 app.post("/initiatePayment", async (req, res) => {
-  const orderId = `order_${Date.now()}`;
-  const amount = req.body.amount;
-  const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
   const paymentHandler = PaymentHandler.getInstance();
+
+  // Security Fix: Server-side pricing to prevent tampering
+  const productId = req.body.product_id;
+  const product = products[productId];
+
+  if (!product) {
+    return res.status(400).json({ error: "Invalid or missing product_id" });
+  }
+
+  // Use server-side price
+  const amount = product.price;
+
+  // Security Fix: Use secure UUID to prevent race conditions and replay attacks
+  const orderId = `order_${paymentHandler.generateUUID()}`;
+
+  const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
+
   await axios.post(PAYMENT_SHEET_URL, null, {
     params: {
       secret: process.env.PAYMENT_SHEET_KEY,
@@ -45,6 +60,7 @@ app.post("/initiatePayment", async (req, res) => {
       email: req.body.email,
       phone: req.body.phone,
       name: req.body.name,
+      product_id: productId, // logging product_id
       raw_response: "Order created"
     }
   });
@@ -91,8 +107,22 @@ app.post("/handlePaymentResponse", async (req, res) => {
       // [MERCHANT_TODO]:- validation failed, it's critical error
       return res.send("Signature verification failed");
     }
+    // Security Fix: Replay Attack and Race Condition Protection
+    if (isOrderProcessed(orderId)) {
+      console.log(`[Security] Replay attack or duplicate request detected for orderId: ${orderId}`);
+      // return res.status(409).send("Order already processed"); 
+      // Better UX: Redirect to success page if it was successful, or show status. 
+      // For now, we'll redirect to a status page or just the same redirectUrl but logging it.
+      const redirectUrl = `${process.env.REDIRECT_URL}?order_id=${encodeURIComponent(orderId)}&status=duplicate`;
+      return res.redirect(redirectUrl);
+    }
+
     const orderStatusResp = await paymentHandler.orderStatus(orderId);
     const status = orderStatusResp.status;
+
+    // Security Fix: Mark order as processed
+    saveProcessedOrder(orderId, status);
+
     await axios.post(PAYMENT_SHEET_URL, null, {
       params: {
         secret: process.env.PAYMENT_SHEET_KEY,
@@ -158,7 +188,7 @@ app.post("/initiateRefund", async (req, res) => {
     const refundResp = await paymentHandler.refund({
       order_id: req.body.order_id,
       amount: req.body.amount,
-      unique_request_id: req.body.unique_request_id || `refund_${Date.now()}`,
+      unique_request_id: req.body.unique_request_id || `refund_${paymentHandler.generateUUID()}`,
     });
     const html = makeOrderStatusResponse(
       "Merchant Refund Page",
@@ -228,11 +258,11 @@ app.post("/submit-form", async (req, res) => {
 
     // 2️⃣ Build redirect URL
     const redirectUrl =
-        "https://checkout.purnamyogashala.com" +
-        "?name=" + encodeURIComponent(req.body.et_pb_contact_name_0 || "") +
-        "&email=" + encodeURIComponent(req.body.et_pb_contact_email_0 || "") +
-        "&phone=" + encodeURIComponent(req.body.et_pb_contact_mobile_0 || "") +
-        `&amount=${PaymentType["100_WITH_ACCOM"]}` ;
+      "https://checkout.purnamyogashala.com" +
+      "?name=" + encodeURIComponent(req.body.et_pb_contact_name_0 || "") +
+      "&email=" + encodeURIComponent(req.body.et_pb_contact_email_0 || "") +
+      "&phone=" + encodeURIComponent(req.body.et_pb_contact_mobile_0 || "") +
+      `&product_id=100_WITH_ACCOM`; // Security Fix: Pass product_id instead of raw amount
 
     // 3️⃣ Redirect browser
     return res.json({
@@ -289,6 +319,39 @@ const makeOrderStatusResponse = (title, message, req, response) => {
         </html>
     `;
 };
+
+// Security Fix: Simple file-based persistence for replay protection
+const ORDERS_DB_PATH = path.join(__dirname, 'orders_db.json');
+
+function getProcessedOrders() {
+  try {
+    if (!fs.existsSync(ORDERS_DB_PATH)) {
+      return {};
+    }
+    const data = fs.readFileSync(ORDERS_DB_PATH, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Error reading orders db:", err);
+    return {};
+  }
+}
+
+function saveProcessedOrder(orderId, status) {
+  try {
+    const orders = getProcessedOrders();
+    orders[orderId] = { status, timestamp: new Date().toISOString() };
+    fs.writeFileSync(ORDERS_DB_PATH, JSON.stringify(orders, null, 2));
+  } catch (err) {
+    console.error("Error saving order to db:", err);
+  }
+}
+
+function isOrderProcessed(orderId) {
+  const orders = getProcessedOrders();
+  // Consider an order processed if it exists and is in a final state (or just exists for simplicity in this case)
+  return !!orders[orderId];
+}
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

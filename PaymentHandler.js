@@ -27,7 +27,7 @@ class SimpleLogger {
       valueStr = JSON.stringify(value);
     }
     const logMessage = `${timestamp} [${level.toUpperCase()}] apiTag=${apiTag}, paymentRequestId=${paymentRequestId}, message=${message}, value=${valueStr}${EOL}`;
-    fs.appendFile(this.logFilePath, logMessage, () => {});
+    fs.appendFile(this.logFilePath, logMessage, () => { });
   }
 
   info(apiTag, paymentRequestId, message, value) {
@@ -89,7 +89,7 @@ class PaymentHandler {
     } catch (error) {
       console.error(
         "Failed to read configs from file, here's tbe error message:- " +
-          error.message
+        error.message
       );
       throw new TypeError("Failed to find/read config file");
     }
@@ -334,13 +334,12 @@ class PaymentHandler {
   }
 
   generateUUID = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      }
+    if (crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Polyfill-like fallback for older Node versions using crypto.randomBytes
+    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+      (c ^ crypto.randomBytes(1)[0] & 15 >> c / 4).toString(16)
     );
   };
 

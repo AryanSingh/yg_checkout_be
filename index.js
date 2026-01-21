@@ -46,7 +46,7 @@ app.post("/initiatePayment", async (req, res) => {
   const amount = product.price;
 
   // Security Fix: Use secure UUID to prevent race conditions and replay attacks
-  const orderId = `order_${Date.now()}`;
+  const orderId = `order_${paymentHandler.generateUUID()}`;
 
   const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
 
@@ -186,8 +186,7 @@ app.post("/initiateRefund", async (req, res) => {
     const refundResp = await paymentHandler.refund({
       order_id: req.body.order_id,
       amount: req.body.amount,
-      unique_request_id: req.body.unique_request_id || `refund_${Date.now()}`,
-      // unique_request_id: req.body.unique_request_id || `refund_${paymentHandler.generateUUID()}`,
+      unique_request_id: req.body.unique_request_id || `refund_${paymentHandler.generateUUID()}`,
     });
     const html = makeOrderStatusResponse(
       "Merchant Refund Page",

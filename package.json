@@ -21,6 +21,7 @@
     "dotenv": "^17.2.3",
     "envalid": "^8.1.1",
     "express": "^4.19.2",
+    "mongoose": "^9.1.5",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {

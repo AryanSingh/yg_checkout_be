@@ -11,7 +11,20 @@ const {
 } = require("./PaymentHandler");
 const crypto = require("crypto");
 const path = require("path");
+const mongoose = require("mongoose");
 const app = express();
+const processingOrders = new Set();
+
+mongoose.connect(process.env.CONNECTION_STRING)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB connection error:", err));
+
+const OrderSchema = new mongoose.Schema({
+  orderId: { type: String, required: true, unique: true },
+  status: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+const Order = mongoose.model('Order', OrderSchema);
 const port = process.env.PORT || "";
 const PAYMENT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzW4Ym-N-Oh1lvb-xsjnQcFysn__EC8V00Fkmhs4NuEWnhJKZYUjTdC2KLsGv3X_ErE/exec";
 app.use(express.urlencoded({ extended: true }));
@@ -99,6 +112,13 @@ app.post("/handlePaymentResponse", async (req, res) => {
     return res.send("Something went wrong");
   }
 
+  if (processingOrders.has(orderId)) {
+    console.log(`[Concurrency] Order ${orderId} is currently being processed. Ignoring duplicate request.`);
+    return res.status(409).send("Order is currently being processed");
+  }
+
+  processingOrders.add(orderId);
+
   try {
 
     if (
@@ -108,11 +128,9 @@ app.post("/handlePaymentResponse", async (req, res) => {
       return res.send("Signature verification failed");
     }
     // Security Fix: Replay Attack and Race Condition Protection
-    if (isOrderProcessed(orderId)) {
+    const existingOrder = await Order.findOne({ orderId });
+    if (existingOrder) {
       console.log(`[Security] Replay attack or duplicate request detected for orderId: ${orderId}`);
-      // return res.status(409).send("Order already processed"); 
-      // Better UX: Redirect to success page if it was successful, or show status. 
-      // For now, we'll redirect to a status page or just the same redirectUrl but logging it.
       const redirectUrl = `${process.env.REDIRECT_URL}?order_id=${encodeURIComponent(orderId)}&status=duplicate`;
       return res.redirect(redirectUrl);
     }
@@ -121,7 +139,7 @@ app.post("/handlePaymentResponse", async (req, res) => {
     const status = orderStatusResp.status;
 
     // Security Fix: Mark order as processed
-    saveProcessedOrder(orderId, status);
+    await Order.create({ orderId, status });
 
     await axios.post(PAYMENT_SHEET_URL, null, {
       params: {
@@ -174,6 +192,8 @@ app.post("/handlePaymentResponse", async (req, res) => {
     }
     // [MERCHANT_TODO]:- please handle errors
     return res.send("Something went wrong");
+  } finally {
+    processingOrders.delete(orderId);
   }
 });
 
@@ -318,37 +338,7 @@ const makeOrderStatusResponse = (title, message, req, response) => {
     `;
 };
 
-// Security Fix: Simple file-based persistence for replay protection
-const ORDERS_DB_PATH = path.join(__dirname, 'orders_db.json');
 
-function getProcessedOrders() {
-  try {
-    if (!fs.existsSync(ORDERS_DB_PATH)) {
-      return {};
-    }
-    const data = fs.readFileSync(ORDERS_DB_PATH, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error("Error reading orders db:", err);
-    return {};
-  }
-}
-
-function saveProcessedOrder(orderId, status) {
-  try {
-    const orders = getProcessedOrders();
-    orders[orderId] = { status, timestamp: new Date().toISOString() };
-    fs.writeFileSync(ORDERS_DB_PATH, JSON.stringify(orders, null, 2));
-  } catch (err) {
-    console.error("Error saving order to db:", err);
-  }
-}
-
-function isOrderProcessed(orderId) {
-  const orders = getProcessedOrders();
-  // Consider an order processed if it exists and is in a final state (or just exists for simplicity in this case)
-  return !!orders[orderId];
-}
 
 
 app.listen(port, () => {

@@ -22,7 +22,10 @@ mongoose.connect(process.env.CONNECTION_STRING)
 const OrderSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true },
   status: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
+  email: { type: String },
+  name: { type: String },
+  phone: { type: String }
 });
 const Order = mongoose.model('Order', OrderSchema);
 const port = process.env.PORT || "";
@@ -139,7 +142,7 @@ app.post("/handlePaymentResponse", async (req, res) => {
     const status = orderStatusResp.status;
 
     // Security Fix: Mark order as processed
-    await Order.create({ orderId, status });
+    await Order.create({ orderId, status, name: req.body.name, email: req.body.email, phone: req.body.phone });
 
     await axios.post(PAYMENT_SHEET_URL, null, {
       params: {
@@ -148,6 +151,11 @@ app.post("/handlePaymentResponse", async (req, res) => {
         status,
         amount: orderStatusResp.amount || "",
         currency: "INR",
+        email: req.body.email,
+        phone: req.body.phone,
+        address: req.body.address,
+        name: req.body.name,
+        customer_id: process.env.MERCHANT_ID,
         raw_response: JSON.stringify(orderStatusResp)
       }
     });

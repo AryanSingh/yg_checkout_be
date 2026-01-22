@@ -63,20 +63,20 @@ app.post("/initiatePayment", async (req, res) => {
 
   const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
 
-  await axios.post(PAYMENT_SHEET_URL, null, {
-    params: {
-      secret: process.env.PAYMENT_SHEET_KEY,
-      order_id: orderId,
-      status: "CREATED",
-      amount,
-      currency: "INR",
-      email: req.body.email,
-      phone: req.body.phone,
-      name: req.body.name,
-      product_id: productId, // logging product_id
-      raw_response: "Order created"
-    }
-  });
+  // await axios.post(PAYMENT_SHEET_URL, null, {
+  //   params: {
+  //     secret: process.env.PAYMENT_SHEET_KEY,
+  //     order_id: orderId,
+  //     status: "CREATED",
+  //     amount,
+  //     currency: "INR",
+  //     email: req.body.email,
+  //     phone: req.body.phone,
+  //     name: req.body.name,
+  //     product_id: productId, // logging product_id
+  //     raw_response: "Order created"
+  //   }
+  // });
 
   const payload = {
     order_id: orderId,

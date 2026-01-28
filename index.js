@@ -92,6 +92,16 @@ app.post("/initiatePayment", async (req, res) => {
     name: req.body.name,
     customer_id: process.env.MERCHANT_ID,
   }
+
+  // Security Fix: Initiate order status to prevent replay and track lifecycle
+  await Order.create({
+    orderId,
+    status: "INITIATED",
+    timestamp: new Date(),
+    email: req.body.email,
+    name: req.body.name,
+    phone: req.body.phone
+  });
   try {
     const orderSessionResp = await paymentHandler.orderSession(payload);
     return res.json({
@@ -132,17 +142,32 @@ app.post("/handlePaymentResponse", async (req, res) => {
     }
     // Security Fix: Replay Attack and Race Condition Protection
     const existingOrder = await Order.findOne({ orderId });
-    if (existingOrder) {
+    if (!existingOrder) {
+      console.log(`[Security] Invalid or unsolicited response for orderId: ${orderId}`);
+      return res.status(400).send("Invalid order session");
+    }
+
+    if (existingOrder.status !== "INITIATED") {
       console.log(`[Security] Replay attack or duplicate request detected for orderId: ${orderId}`);
       const redirectUrl = `${process.env.REDIRECT_URL}?order_id=${encodeURIComponent(orderId)}&status=duplicate`;
       return res.redirect(redirectUrl);
     }
 
+    // Security Fix: Check for expiration (e.g., 30 minutes)
+    const MAX_ORDER_AGE = 30 * 60 * 1000;
+    if (Date.now() - existingOrder.timestamp.getTime() > MAX_ORDER_AGE) {
+      console.log(`[Security] Expired order response for orderId: ${orderId}`);
+      return res.status(400).send("Order session expired");
+    }
+
     const orderStatusResp = await paymentHandler.orderStatus(orderId);
     const status = orderStatusResp.status;
 
-    // Security Fix: Mark order as processed
-    await Order.create({ orderId, status, name: req.body.name, email: req.body.email, phone: req.body.phone });
+    // Security Fix: Update existing order instead of creating new one
+    existingOrder.status = status;
+    // We already have name/email/phone from initiation, but we can update/confirm if needed.
+    // existingOrder.name = req.body.name || existingOrder.name; 
+    await existingOrder.save();
 
     await axios.post(PAYMENT_SHEET_URL, null, {
       params: {

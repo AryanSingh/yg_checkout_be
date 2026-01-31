@@ -51,7 +51,7 @@ app.post("/initiatePayment", async (req, res) => {
   const paymentHandler = PaymentHandler.getInstance();
 
   // Security Fix: Server-side pricing to prevent tampering
-  const productId = req.body.product_id;
+  const productId = req.body.product_url || req.body.product_id;
   const product = products[productId];
 
   if (!product) {
@@ -66,25 +66,10 @@ app.post("/initiatePayment", async (req, res) => {
 
   const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
 
-  // await axios.post(PAYMENT_SHEET_URL, null, {
-  //   params: {
-  //     secret: process.env.PAYMENT_SHEET_KEY,
-  //     order_id: orderId,
-  //     status: "CREATED",
-  //     amount,
-  //     currency: "INR",
-  //     email: req.body.email,
-  //     phone: req.body.phone,
-  //     name: req.body.name,
-  //     product_id: productId, // logging product_id
-  //     raw_response: "Order created"
-  //   }
-  // });
-
   const payload = {
     order_id: orderId,
     amount,
-    currency: "INR",
+    currency: "EUR",
     return_url: returnUrl,
     email: req.body.email,
     phone: req.body.phone,
@@ -208,16 +193,6 @@ app.post("/handlePaymentResponse", async (req, res) => {
 
     const redirectUrl = `${process.env.REDIRECT_URL}?order_id=${encodeURIComponent(orderId)}`;
     return res.redirect(redirectUrl);
-    // return res.redirect(process.env.REDIRECT_URL);
-
-    // const html = makeOrderStatusResponse(
-    //   "Merchant Payment Response Page",
-    //   message,
-    //   req,
-    //   orderStatusResp
-    // );
-    // res.set("Content-Type", "text/html");
-    // return res.send(html);
   } catch (error) {
     // [MERCHANT_TODO]:- please handle errors
     if (error instanceof APIException) {

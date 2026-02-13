@@ -82,10 +82,20 @@ class PaymentHandler {
     if (PaymentHandler.paymentHandlerInstance !== undefined)
       return PaymentHandler.paymentHandlerInstance;
     this.paymentConfigs = undefined;
-    const configPath = userSpecifiedConfigPath || "config.json";
+    const configPath = userSpecifiedConfigPath || path.join(__dirname, "config.js");
     try {
-      const config = fs.readFileSync(configPath, "utf-8");
-      this.paymentConfigs = JSON.parse(config);
+      let config = undefined;
+      const resolvedPath = path.isAbsolute(configPath)
+        ? configPath
+        : path.join(__dirname, configPath);
+      if (path.extname(resolvedPath) === ".js") {
+        // eslint-disable-next-line global-require
+        config = require(resolvedPath);
+      } else {
+        const configFile = fs.readFileSync(resolvedPath, "utf-8");
+        config = JSON.parse(configFile);
+      }
+      this.paymentConfigs = this.normalizeConfig(config);
     } catch (error) {
       console.error(
         "Failed to read configs from file, here's tbe error message:- " +
@@ -384,6 +394,24 @@ class PaymentHandler {
 
   getVersion() {
     return this.version || "2024-06-24";
+  }
+
+  normalizeConfig(config) {
+    if (config === undefined || typeof config !== "object") {
+      return config;
+    }
+
+    return {
+      ...config,
+      API_KEY: config.API_KEY ?? config.apiKey,
+      MERCHANT_ID: config.MERCHANT_ID ?? config.merchantId,
+      PAYMENT_PAGE_CLIENT_ID:
+        config.PAYMENT_PAGE_CLIENT_ID ?? config.paymentPageClientId,
+      BASE_URL: config.BASE_URL ?? config.baseUrl,
+      ENABLE_LOGGING: config.ENABLE_LOGGING ?? config.enableLogging,
+      LOGGING_PATH: config.LOGGING_PATH ?? config.loggingPath,
+      RESPONSE_KEY: config.RESPONSE_KEY ?? config.responseKey,
+    };
   }
 }
 

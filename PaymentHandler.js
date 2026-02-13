@@ -156,6 +156,7 @@ class PaymentHandler {
 
   // utility functions
   makeServiceCall({ apiTag, path, method, headers = {}, query = {}, body }) {
+    console.log("service call", this.paymentConfigs);
     return new Promise((resolve, reject) => {
       const paymentRequestId = this.generateUUID();
       headers = {

@@ -69,7 +69,7 @@ app.post("/initiatePayment", async (req, res) => {
   const payload = {
     order_id: orderId,
     amount,
-    currency: "EUR",
+    currency: "INR",
     return_url: returnUrl,
     email: req.body.email,
     phone: req.body.phone,

@@ -102,6 +102,10 @@ class PaymentHandler {
 
   orderSession(params) {
     this.validateParams(params);
+    console.log("body", { body: {
+        payment_page_client_id: this.getPaymentPageClientId(),
+        ...params,
+      }})
     return this.makeServiceCall({
       apiTag: "ORDER_SESSION",
       method: "POST",

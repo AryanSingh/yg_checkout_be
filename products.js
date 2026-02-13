@@ -21,7 +21,7 @@ const products = {
   },
   "CUSTOM_AMOUNT": { // keeping a fallback for testing if needed, or we can remove it. Ideally strict.
      name: "Custom Payment",
-     price: null, // Dynamic
+     price: 5, // Dynamic
      currency: "INR"
   }
 };

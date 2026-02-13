@@ -112,10 +112,6 @@ class PaymentHandler {
 
   orderSession(params) {
     this.validateParams(params);
-    console.log("body", { body: {
-        payment_page_client_id: this.getPaymentPageClientId(),
-        ...params,
-      }})
     return this.makeServiceCall({
       apiTag: "ORDER_SESSION",
       method: "POST",
@@ -166,7 +162,6 @@ class PaymentHandler {
 
   // utility functions
   makeServiceCall({ apiTag, path, method, headers = {}, query = {}, body }) {
-    console.log("service call", this.paymentConfigs);
     return new Promise((resolve, reject) => {
       const paymentRequestId = this.generateUUID();
       headers = {

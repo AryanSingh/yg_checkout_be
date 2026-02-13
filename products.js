@@ -6,7 +6,7 @@ const products = {
   },
   "100_WITHOUT_ACCOM": {
     name: "100 Hour Yoga API without Accommodation",
-    price: 600,
+    price: 6001,
     currency: "INR"
   },
   "200_WITH_ACCOM": {

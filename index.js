@@ -63,7 +63,7 @@ app.post("/initiatePayment", async (req, res) => {
 
   // Security Fix: Use secure UUID to prevent race conditions and replay attacks
   const orderId = `order_${paymentHandler.generateUUID()}`;
-  console.log("returnUlr", process.env);
+  console.log("returnUlr", process.env.PUBLIC_BASE_URL, process.env.MERCHANT_ID, process.env.BASE_URL, process.env.PAYMENT_PAGE_CLIENT_ID);
   const returnUrl = `${process.env.PUBLIC_BASE_URL}/handlePaymentResponse`;
 
   const payload = {
